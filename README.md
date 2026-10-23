@@ -239,10 +239,12 @@ Once both servers are running:
 
 ---
 
-## 🚢 Deploying to AWS (AWS SAM)
+## 🚢 Deployment Options
 
-When your AWS account verification is active:
+ContextFuse provides three ready-to-deploy options depending on your infrastructure:
 
+### Option 1: AWS Serverless (AWS SAM)
+Ideal for AWS native hosting with Lambda, API Gateway, and DynamoDB.
 ```bash
 # 1. Build serverless artifact
 cd infra
@@ -255,22 +257,56 @@ sam deploy --guided \
   --capabilities CAPABILITY_IAM
 
 # 3. Connect Frontend
-# Take the HttpApiUrl output from SAM deploy and set it in frontend:
-# VITE_API_BASE_URL=https://<api-id>.execute-api.us-east-1.amazonaws.com/prod npm run build
+# Pass the generated HttpApiUrl into your production frontend build:
+VITE_API_BASE_URL=https://<api-id>.execute-api.us-east-1.amazonaws.com/prod npm run build
 ```
+
+### Option 2: 1-Click Render Blueprint (`render.yaml`)
+Fast, zero-credential public hosting for both backend web service and static frontend.
+1. Connect `https://github.com/uzzam08-stack/ContextFuse` to your [Render Dashboard](https://dashboard.render.com).
+2. Choose **Blueprints** and select `render.yaml`.
+3. Render automatically provisions:
+   - `contextfuse-api`: FastAPI Python 3.12 Web Service (`/api/health` check, automatic CORS wildcard support)
+   - `contextfuse-ui`: Vite React Static Site with client-side SPA routing
+
+### Option 3: Vercel Frontend + Render/AWS Backend
+1. Import the repository on [Vercel](https://vercel.com/new).
+2. Root directory: select root (managed via `vercel.json`).
+3. Set Environment Variable: `VITE_API_BASE_URL` = your backend API URL.
+
+---
+
+## 🎥 3-Minute Hackathon Demo Script
+
+For recording your submission demo video:
+
+| Time | Screen | Audio / Speaking Points |
+|---|---|---|
+| **0:00 - 0:30** | Dashboard Overview (`localhost:5173`) | *"Autonomous AI operations agents often fail catastrophically because they act on stale runbooks, conflicting configuration, or missing telemetry. ContextFuse is an evidence-gated safety gate that evaluates context before permitting any action."* |
+| **0:30 - 1:15** | Scenario 1: **Stale DB Endpoint** | *"Here, an agent attempts a database migration. ContextFuse calculates SHA-256 evidence hashes and detects a 48-hour expired runbook conflicting with live Terraform state. The Strands Decider evaluates the 5-action space, and our deterministic safety guard authoritatively enforces ESCALATE, blocking automated execution."* |
+| **1:15 - 1:55** | Scenario 2: **Missing Health Evidence** | *"In our second scenario, a canary is promoted without synthetic health probes while P99 latency alerts fire. Notice that ContextFuse never assumes missing evidence is healthy. It selects VERIFY, automatically dispatching a read-only simulated probe."* |
+| **1:55 - 2:30** | Scenario 3: **Clean Context** | *"When all signals match, hashes verify, and evidence is fresh, the gate selects PROCEED. Notice the Bedrock explanation citing exact evidence IDs and the structured CloudWatch JSON log emitted to the audit stream."* |
+| **2:30 - 3:00** | Replay History & Benchmark | *"Our Replay History allows auditing every prior decision, while our Benchmark tab proves ContextFuse stops 100% of out-of-context catastrophes where raw LLMs fail. Transparent status pills at the top always distinguish live cloud calls from deterministic fallbacks."* |
+
+---
+
+## ⚠️ Honest Limitations & System Status
+
+- **Strands Decider 2B**: Tested against the official `/v1/systemone` pointer-head specification. When local Ollama (`strands-decider:2b`) is not running locally, ContextFuse activates its normalized heuristic fallback and transparently sets `is_fallback: true` in the UI and API response.
+- **Amazon Bedrock**: Designed for Claude 3.5 Sonnet on the Converse API. When AWS account daily token limits are throttled or verification is pending, ContextFuse gracefully falls back to evidence-grounded incident summaries and sets `is_bedrock_available: false`.
+- **DynamoDB**: Employs an in-memory ring-buffer store during local development to avoid unverified billable cloud charges.
 
 ---
 
 ## 📋 Hackathon Submission Checklist
 
-- [x] **Working Prototype**: Full-stack application running with FastAPI backend and React/Vite frontend.
-- [x] **Agent Architecture**: 7-stage evidence-gated safety pipeline with SHA-256 evidence hashing.
-- [x] **Model Implementations**: Strands Decider 2B (`/v1/systemone`) and Amazon Bedrock Converse API (`Claude 3.5 Sonnet`).
-- [x] **AWS Native Services**: AWS Lambda, API Gateway HTTP API, DynamoDB On-Demand, and CloudWatch structured audit logging.
+- [x] **Public GitHub Repository**: [`https://github.com/uzzam08-stack/ContextFuse`](https://github.com/uzzam08-stack/ContextFuse)
+- [x] **Working Prototype**: Full-stack application with FastAPI backend and Vite/React frontend.
+- [x] **7-Stage Safety Pipeline**: Content-addressed SHA-256 hashing, risk detection, bounded decisions, and authoritative safety guard.
+- [x] **AWS Native Integration**: AWS Lambda (Mangum), API Gateway, DynamoDB (PAY_PER_REQUEST), Bedrock Converse API, and CloudWatch structured audit logging.
 - [x] **Zero Flaky Tests**: 53 comprehensive unit and integration tests passing in < 1 second.
-- [x] **Deterministic Safety Guard**: Hard policy guarantee that language models can never override safety constraints.
-- [x] **Security & Integrity**: Zero credentials in repo, `.env` gitignored, PAY_PER_REQUEST cost safety, simulated read-only tools.
-- [x] **Transparent Accounting**: Clear distinction between live invocations and deterministic fallbacks.
+- [x] **Transparent Accounting**: Live status endpoint (`/api/status`) and UI status indicators clearly distinguish live calls from local fallbacks.
+- [x] **Zero Credential Leaks**: Credentials strictly confined to environment variables; `.gitignore` validated.
 
 ---
 
