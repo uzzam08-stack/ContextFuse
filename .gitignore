@@ -1,0 +1,40 @@
+# ─── Credentials & Secrets ────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials
+~/.aws/credentials
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+venv/
+.venv/
+env/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# ─── Node / Frontend ──────────────────────────────────────────────────────────
+node_modules/
+dist/
+.vite/
+*.local
+
+# ─── Editor ───────────────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/settings.json
+*.swp
+*.swo

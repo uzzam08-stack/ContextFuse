@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ContextFuse - The Context Safety Gate for AI Agents
+  AWS Agent Experience Hackathon Infrastructure
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.12
+    Environment:
+      Variables:
+        AWS_REGION: !Ref AWS::Region
+        APP_ENV: production
+        LOG_LEVEL: INFO
+        DYNAMODB_TABLE_NAME: !Ref ContextFuseRunsTable
+        BEDROCK_MODEL_ID: us.anthropic.claude-3-5-sonnet-20241022-v2:0
+        DECIDER_BASE_URL: http://localhost:11434
+
+Resources:
+  # ─── Amazon DynamoDB Table ─────────────────────────────────────────────────
+  ContextFuseRunsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: contextfuse-runs
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: run_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: run_id
+          KeyType: HASH
+      Tags:
+        - Key: Project
+          Value: ContextFuse
+
+  # ─── Amazon API Gateway (HTTP API) ─────────────────────────────────────────
+  ContextFuseHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+
+  # ─── AWS Lambda Function ───────────────────────────────────────────────────
+  ContextFuseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: app.lambda_handler.handler
+      Description: ContextFuse AI Context Safety Gate Backend API
+      Policies:
+        # DynamoDB CRUD on runs table
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ContextFuseRunsTable
+        # CloudWatch Logs permissions
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+            # Bedrock Converse API invocation
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:Converse
+              Resource: '*'
+      Events:
+        ApiRoot:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ContextFuseHttpApi
+            Path: /
+            Method: GET
+        ApiProxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ContextFuseHttpApi
+            Path: /{proxy+}
+            Method: ANY
+
+Outputs:
+  HttpApiUrl:
+    Description: ContextFuse HTTP API Gateway Base URL
+    Value: !Sub "https://${ContextFuseHttpApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+  DynamoDBTableName:
+    Description: DynamoDB Table Name for Orchestration Run History
+    Value: !Ref ContextFuseRunsTable
